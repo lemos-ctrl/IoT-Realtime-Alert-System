@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RFID Logs Display</title>
+  
+  <!-- Firebase SDK -->
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
+
+  <!-- Google Icons for visual enhancements -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f4f8;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    
+    h1 {
+      text-align: center;
+      color: #4A90E2;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #fff;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+
+    .search-box {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 20px;
+    }
+
+    .search-box input {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 250px;
+    }
+
+    .search-box .material-icons {
+      font-size: 24px;
+      color: #888;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f7f7f7;
+      font-size: 16px;
+      color: #333;
+    }
+
+    td {
+      font-size: 14px;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    .no-data {
+      text-align: center;
+      color: #999;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+
+    @media (max-width: 600px) {
+      table, th, td {
+        font-size: 12px;
+      }
+
+      .search-box input {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<h1>RFID Logs</h1>
+
+<div class="container">
+  <div class="search-box">
+    <input type="text" id="search-input" placeholder="Search RFID logs...">
+    <span class="material-icons" id="search-icon">search</span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>RFID ID</th>
+        <th>Timestamp</th>
+      </tr>
+    </thead>
+    <tbody id="logs-table">
+      <!-- Data will be inserted here dynamically -->
+      <tr>
+        <td colspan="2" class="loading">Loading data...</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "real-time-alert-system.firebaseapp.com",
+    databaseURL: "https://real-time-alert-system-default-rtdb.firebaseio.com",
+    projectId: "real-time-alert-system",
+    storageBucket: "real-time-alert-system.appspot.com",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID",
+    measurementId: "YOUR_MEASUREMENT_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const logsRef = ref(db, "logs");
+
+  function convertTimestamp(ms) {
+    const date = new Date(parseInt(ms));
+    return date.toLocaleString();
+  }
+
+  function loadLogs() {
+    onValue(logsRef, (snapshot) => {
+      const logsTable = document.getElementById("logs-table");
+      logsTable.innerHTML = "";
+
+      const logs = snapshot.val();
+      if (logs) {
+        Object.keys(logs).forEach((key) => {
+          const log = logs[key];
+          const rfidId = log.rfid_id;
+          const timestamp = convertTimestamp(log.timestamp);
+
+          const row = document.createElement("tr");
+          row.innerHTML = `<td>${rfidId}</td><td>${timestamp}</td>`;
+          logsTable.appendChild(row);
+        });
+      } else {
+        logsTable.innerHTML = "<tr><td colspan='2' class='no-data'>No data available</td></tr>";
+      }
+    });
+  }
+
+  window.onload = function() {
+    loadLogs();
+  };
+
+  // Search functionality
+  const searchInput = document.getElementById('search-input');
+  searchInput.addEventListener('input', filterLogs);
+
+  function filterLogs() {
+    const searchValue = searchInput.value.toLowerCase();
+    const rows = document.querySelectorAll('#logs-table tr');
+    
+    rows.forEach(row => {
+      const rfidCell = row.querySelector('td');
+      if (rfidCell) {
+        const rfidText = rfidCell.textContent.toLowerCase();
+        row.style.display = rfidText.includes(searchValue) ? '' : 'none';
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
